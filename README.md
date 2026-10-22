@@ -48,6 +48,12 @@ macOS ─ FX Steam Launcher (libkrun VM, ARM64 SteamOS)
 Install these from the Steam library: **Proton Experimental**, **Proton EasyAntiCheat Runtime** and **FEX-Emu**.
 
 ### 3. Patched FEX
+First connect to the VM over SSH from a terminal on the Mac:
+1. In the launcher, open **FX Steam Launcher → Settings** (`Cmd + ,`) → **Advanced** and turn on **SSH**. That tab shows the **port** and a **generated password**. Note both.
+2. The setting applies on the next start: shut down SteamOS (**Steam → Power → Shut Down**) or quit the launcher (`Cmd + Q`), then open it again.
+3. Connect with the port from the Advanced tab (`2222` below) and enter the password when asked. The VM is only reachable from your own Mac (localhost).
+
+Then build and install FEX inside the VM:
 ```sh
 ssh -p 2222 steamos@127.0.0.1
 git clone --depth 1 -b fex-eac https://github.com/StonkGuy/steamac.git ~/steamac-fork
