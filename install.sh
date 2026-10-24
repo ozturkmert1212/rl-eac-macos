@@ -4,6 +4,7 @@
 # Safe to re-run: every step checks what is already there. Run it again after each step it asks you to do.
 set -euo pipefail
 
+SCRIPT_VERSION=2026-10-24.2
 REPO_RAW=https://raw.githubusercontent.com/ozturkmert1212/rl-eac-macos/main
 FORK=https://github.com/StonkGuy/steamac.git
 FEX_TAG=eac-2610.3
@@ -187,6 +188,7 @@ else
 fi
 
 say "Steam shortcut settings"
+echo "    install.sh $SCRIPT_VERSION"
 # Edits shortcuts.vdf (binary: launch options, name) and config.vdf (text: compat tool) for the shortcut
 # whose Exe is $1. "check" only reports; "apply" writes. Steam must not be running for "apply".
 shortcut_cfg() {
@@ -259,11 +261,12 @@ for sf in glob.glob(steam + "/userdata/*/config/shortcuts.vdf"):
         m = cfg
         for key in ("InstallConfigStore", "Software", "Valve", "Steam", "CompatToolMapping"):
             m = sub(m, key)
-        ok = sc.get("LaunchOptions") == opts and m.get(str(appid), {}).get("name") == "proton_experimental"
+        an = next((k for k in sc if k.lower() == "appname"), "AppName")
+        ok = (sc.get("LaunchOptions") == opts and m.get(str(appid), {}).get("name") == "proton_experimental"
+              and sc.get(an) not in ("", "Launcher.exe", "Launcher"))
         if mode == "check": todo += not ok; continue
         if ok: continue
         sc["LaunchOptions"] = opts
-        an = next((k for k in sc if k.lower() == "appname"), "AppName")
         if sc.get(an) in ("", "Launcher.exe", "Launcher"): sc[an] = "Rocket League"
         m[str(appid)] = {"name": "proton_experimental", "config": "", "priority": "250"}
         for f, data in ((sf, b"\0" + name.encode() + b"\0" + wr_bin(root) + b"\x08"),
@@ -278,7 +281,9 @@ if shortcut_cfg check "$exe" "$opts"; then
   ok "launch options and Proton Experimental already set"
 elif pgrep -u "$USER" -x steam >/dev/null && ! pgrep -u "$USER" -x plasmashell >/dev/null; then
   # In Game Mode the session may start Steam again right away and overwrite the files.
-  todo "set these by hand in Steam > Launcher.exe > Properties (or switch to Desktop Mode and run this script again):"
+  todo "Steam is in Game Mode, so this script does not touch its files. Either switch to Desktop Mode"
+  echo "    (Steam > Power > Switch to Desktop) and run this script again, or set these by hand in"
+  echo "    Steam > Launcher.exe > Properties:"
   echo "      Launch Options:  $opts"
   echo "      Compatibility:   force Proton Experimental"
 else
