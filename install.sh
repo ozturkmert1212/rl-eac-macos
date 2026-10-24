@@ -310,4 +310,4 @@ fi
 say "Done"
 echo "    In Steam, play Rocket League (the shortcut). The first start is slow."
 echo "    Check FX Steam Launcher > Settings > Advanced > Graphics path: DXMT."
-echo "    EAC is fine when ~/steam-*.log says 'Launcher finished with: 301'."
+echo "    If Rocket League does not show up in your Steam library, restart Steam (or the launcher)."
