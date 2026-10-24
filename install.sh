@@ -4,7 +4,7 @@
 # Safe to re-run: every step checks what is already there. Run it again after each step it asks you to do.
 set -euo pipefail
 
-SCRIPT_VERSION=2026-10-24.3
+SCRIPT_VERSION=2026-10-24.4
 REPO_RAW=https://raw.githubusercontent.com/ozturkmert1212/rl-eac-macos/main
 FORK=https://github.com/StonkGuy/steamac.git
 FEX_TAG=eac-2610.3
@@ -237,26 +237,26 @@ def sub(d, key):
     k = next((k for k in d if k.lower() == key.lower() and isinstance(d[k], dict)), key)
     return d.setdefault(k, {})
 
+# Tokens are kept exactly as written (escapes included), so everything not touched is written back unchanged.
 def rd_txt(s):
     toks = re.findall(r'"((?:[^"\\]|\\.)*)"|([{}])', s)
     def node(i):
         d = {}
         while i < len(toks):
-            q, br = toks[i]
+            k, br = toks[i]
             if br == "}": return d, i + 1
-            k = q.replace('\\\\', '\\'); i += 1
-            q2, br2 = toks[i]
-            if br2 == "{": d[k], i = node(i + 1)
-            else: d[k] = q2.replace('\\\\', '\\'); i += 1
+            if k in d: raise ValueError("duplicate key in config.vdf: " + k)
+            q2, br2 = toks[i + 1]
+            if br2 == "{": d[k], i = node(i + 2)
+            else: d[k] = q2; i += 2
         return d, i
     return node(0)[0]
 
 def wr_txt(d, ind=0):
     o, t = [], "\t" * ind
-    esc = lambda x: x.replace('\\', '\\\\')
     for k, v in d.items():
-        if isinstance(v, dict): o += [f'{t}"{esc(k)}"', t + "{"] + wr_txt(v, ind + 1) + [t + "}"]
-        else: o.append(f'{t}"{esc(k)}"\t\t"{esc(v)}"')
+        if isinstance(v, dict): o += [f'{t}"{k}"', t + "{"] + wr_txt(v, ind + 1) + [t + "}"]
+        else: o.append(f'{t}"{k}"\t\t"{v}"')
     return o
 
 todo, found = 0, 0
