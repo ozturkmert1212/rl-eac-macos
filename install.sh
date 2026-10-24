@@ -23,17 +23,44 @@ say "Checking the guest"
 ok "ARM64 SteamOS, Steam library found"
 
 say "Steam tools"
+TOOLS=("1493710:Proton - Experimental" "1826330:Proton EasyAntiCheat Runtime" "3127680:FEX-Emu")
+# The manifest appears as soon as a download starts; StateFlags has bit 4 (installed) without bit 2 (update needed) once it is done.
+installed() {
+  local f=$APPS/appmanifest_$1.acf flags
+  [ -f "$f" ] || return 1
+  flags=$(sed -n 's/^[[:space:]]*"StateFlags"[[:space:]]*"\([0-9]*\)".*/\1/p' "$f")
+  [ -n "$flags" ] && (( (flags & 4) && !(flags & 2) ))
+}
 missing=0
-for t in "1493710:Proton - Experimental" "1826330:Proton EasyAntiCheat Runtime" "3127680:FEX-Emu"; do
+for t in "${TOOLS[@]}"; do
   id=${t%%:*} name=${t#*:}
-  if [ -f "$APPS/appmanifest_$id.acf" ]; then
+  if installed "$id"; then
     ok "$name"
   else
-    missing=1; todo "$name is not installed, asking Steam to install it"
-    steam "steam://install/$id" >/dev/null 2>&1 &
+    missing=1
+    if [ -f "$APPS/appmanifest_$id.acf" ]; then
+      todo "$name is still downloading"
+    else
+      todo "$name is not installed, asking Steam to install it"
+      steam "steam://install/$id" >/dev/null 2>&1 &
+    fi
   fi
 done
-[ $missing = 0 ] || die "confirm the install dialogs in Steam, wait for the downloads, then run this script again"
+if [ $missing = 1 ]; then
+  echo "    confirm the install dialogs in Steam (VM window); waiting for the downloads, Ctrl+C is safe"
+  waited=0
+  while :; do
+    left=()
+    for t in "${TOOLS[@]}"; do installed "${t%%:*}" || left+=("${t#*:}"); done
+    [ ${#left[@]} = 0 ] && break
+    printf '\r    waiting for: %s   ' "$(IFS=,; echo "${left[*]}")"
+    sleep 10; waited=$((waited + 10))
+    if [ $waited = 120 ] && ! ls "$APPS"/appmanifest_{1493710,1826330,3127680}.acf >/dev/null 2>&1; then
+      printf '\n'; todo "some downloads have not started; if no dialog showed up, install the missing tools from the Steam library by hand"
+    fi
+  done
+  printf '\n'; ok "all Steam tools installed"
+fi
 
 say "Patched FEX ($FEX_TAG)"
 if [ -d "$HOME/steamac-fork/.git" ]; then
