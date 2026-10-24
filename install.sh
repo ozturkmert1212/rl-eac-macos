@@ -4,7 +4,7 @@
 # Safe to re-run: every step checks what is already there. Run it again after each step it asks you to do.
 set -euo pipefail
 
-SCRIPT_VERSION=2026-10-24.4
+SCRIPT_VERSION=2026-10-24.5
 REPO_RAW=https://raw.githubusercontent.com/ozturkmert1212/rl-eac-macos/main
 FORK=https://github.com/StonkGuy/steamac.git
 FEX_TAG=eac-2610.3
@@ -321,5 +321,7 @@ else
 fi
 
 say "Done"
-echo "    In Steam, play Rocket League (the shortcut). The first start is slow."
+printf '    \033[1mGo back to Game Mode before you play\033[0m (desktop icon "Return to Gaming Mode").\n'
+echo "    In Desktop Mode the game stays on a white screen."
+echo "    Then play Rocket League from the Steam library. The first start is slow."
 echo "    Check FX Steam Launcher > Settings > Advanced > Graphics path: DXMT."

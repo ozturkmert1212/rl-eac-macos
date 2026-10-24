@@ -48,7 +48,8 @@ macOS ─ FX Steam Launcher (libkrun VM, ARM64 SteamOS)
    curl -fsSL https://raw.githubusercontent.com/ozturkmert1212/rl-eac-macos/main/install.sh | bash
    ```
 3. The script does what it can and stops with a `TODO` when it needs you: confirming Steam's install dialogs, or logging in to Epic in Heroic. Do that, then run the same command again. It skips everything that is already done. Building FEX takes 15-30 minutes, and downloading the game takes a while too.
-4. In Desktop Mode it also sets the shortcut's Launch Options and Proton Experimental for you (Steam closes and opens again for a moment). In Game Mode it prints them for you to set by hand.
+4. In Desktop Mode it also sets the shortcut's Launch Options and Proton Experimental for you (Steam closes and opens again for a moment). If you start it in Game Mode, it asks you to switch to Desktop Mode and waits.
+5. **Go back to Game Mode before you play** (desktop icon *Return to Gaming Mode*). In Desktop Mode the game stays on a white screen.
 
 The manual steps below do the same thing, one by one.
 
@@ -115,6 +116,7 @@ In Steam, open the shortcut's **Properties**:
 
 ## Notes
 
+- **Play in Game Mode.** Started from Desktop Mode, the game stays on a white screen.
 - **Use DXMT.** On my M5 the Vulkan path (both KosmicKrisp and MoltenVK) hung the GPU in the main menu.
 - **1080p:** the VM screen is 1280×800 by default, so the game offers nothing bigger. Change **Settings → Display → Window size** in the launcher, restart it, and then set the resolution in game.
 - **Updates:** if you update the game in Heroic elsewhere, the wrapper updates the VM copy on the next Play. There is no progress bar, so wait.

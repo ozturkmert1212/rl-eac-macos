@@ -48,7 +48,8 @@ macOS ─ FX Steam Launcher (libkrun VM, ARM64 SteamOS)
    curl -fsSL https://raw.githubusercontent.com/ozturkmert1212/rl-eac-macos/main/install.sh | bash
    ```
 3. Script yapabildiğini yapar, sana iş düştüğünde `TODO` yazıp durur: Steam'in kurulum pencerelerini onaylamak ya da Heroic'te Epic'e giriş yapmak gibi. Onu yap, sonra aynı komutu tekrar çalıştır. Zaten yapılmış adımları atlar. FEX'in derlenmesi 15-30 dakika sürer, oyunun inmesi de biraz zaman alır.
-4. Desktop Mode'dayken kısayolun Launch Options ve Proton Experimental ayarını da kendisi yapar (Steam kısa bir süre kapanıp açılır). Game Mode'daysa bu iki ayarı elle yapman için ekrana yazar.
+4. Desktop Mode'dayken kısayolun Launch Options ve Proton Experimental ayarını da kendisi yapar (Steam kısa bir süre kapanıp açılır). Game Mode'da başlatırsan Desktop Mode'a geçmeni ister ve bekler.
+5. **Oynamadan önce Game Mode'a dön** (masaüstündeki *Return to Gaming Mode* simgesi). Desktop Mode'da oyun beyaz ekranda kalır.
 
 Aşağıdaki manuel adımlar aynı işi tek tek yapar.
 
@@ -115,6 +116,7 @@ Steam'de kısayolun **Properties** bölümünü aç:
 
 ## Notlar
 
+- **Game Mode'da oyna.** Desktop Mode'dan açınca oyun beyaz ekranda kalıyor.
 - **DXMT kullan.** Benim M5'imde Vulkan yolu (hem KosmicKrisp hem MoltenVK) ana menüde GPU'yu kilitledi.
 - **1080p:** VM ekranı varsayılan olarak 1280×800, oyun bundan büyüğünü sunmuyor. Launcher'da **Settings → Display → Window size**'ı değiştir, yeniden başlat, sonra oyunda çözünürlüğü seç.
 - **Güncellemeler:** oyunu başka yerde Heroic'ten güncellersen, wrapper bir sonraki Play'de VM'deki kopyayı da günceller. İlerleme çubuğu çıkmaz, bekle.
