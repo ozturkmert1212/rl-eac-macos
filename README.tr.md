@@ -9,6 +9,10 @@ Zor kısımların hiçbiri benim değil. Bu repo, var olan parçaları Rocket Le
 > [!WARNING]
 > **Resmi değil, desteklenmiyor.** Epic/Psyonix, Rocket League'i macOS'ta, VM'de ya da emülasyon altında desteklemiyor. Hile yapmadığın ve ortamı gizlemediğin sürece ban ihtimali düşük, ama sıfır değil. **Kaybetmeyi göze alabileceğin bir yan hesap kullan.**
 
+[![Apple silicon Mac'te online Rocket League (video)](https://img.youtube.com/vi/zC_vq7zjUqI/maxresdefault.jpg)](https://youtu.be/zC_vq7zjUqI)
+
+*Online çalışırken izlemek için tıkla (YouTube).*
+
 ## Sonuç
 
 21 Ekim 2026'da test edildi:
@@ -36,10 +40,22 @@ macOS ─ FX Steam Launcher (libkrun VM, ARM64 SteamOS)
 - ARM64 Heroic sadece ARM64 Wine/Proton sunuyor. EAC'in x86-64 istemcisi orada yüklenemiyor (kod `206`). Bu yüzden **Heroic sadece giriş ve kurulum için kullanılıyor**. Oyun, Steam'den "non-Steam game" olarak açılıyor.
 - Epic oyunları her açılışta yeni bir tek kullanımlık giriş kodu (`-AUTH_PASSWORD=...`) istiyor. `rl-wrap.sh` bu kodu Heroic'in içindeki `legendary`'den alıp komut satırına ekliyor. Oyun eskiyse önce güncelliyor.
 
+## Hızlı kurulum
+
+1. Mac'te aşağıdaki [1. Launcher ve SteamOS](#1-launcher-ve-steamos) adımını yap, sonra [3. adımdaki](#3-yamalı-fex) gibi SSH ile bağlan.
+2. VM içinde şunu çalıştır:
+   ```sh
+   curl -fsSL https://raw.githubusercontent.com/ozturkmert1212/rl-eac-macos/main/install.sh | bash
+   ```
+3. Script yapabildiğini yapar, sana iş düştüğünde `TODO` yazıp durur: Steam'in kurulum pencerelerini onaylamak ya da Heroic'te Epic'e giriş yapmak gibi. Onu yap, sonra aynı komutu tekrar çalıştır. Zaten yapılmış adımları atlar. FEX'in derlenmesi 15-30 dakika sürer, oyunun inmesi de biraz zaman alır.
+4. Sonunda Steam'de elle yapacağın iki ayarı yazar (Launch Options ve Proton Experimental).
+
+Aşağıdaki manuel adımlar aynı işi tek tek yapar.
+
 ## Kurulum
 
 ### 1. Launcher ve SteamOS
-1. DMG'yi [StonkGuy/steamac releases](https://github.com/StonkGuy/steamac/releases) sayfasından kur. Resmi FX sürümünü **kurma**, onda DXMT yolu yok. DMG ad-hoc imzalı, ilk açılışta sağ tık → Aç de.
+1. DMG'yi [StonkGuy/steamac releases](https://github.com/StonkGuy/steamac/releases) sayfasından kur. Bu kurulum o fork ile test edildi. Resmi FX sürümünde 1.9.2'den beri deneysel bir DXMT seçeneği var, ama Rocket League'i onunla test etmedim. Fork'un DMG'si ad-hoc imzalı, ilk açılışta sağ tık → Aç de.
 2. SteamOS diski oluştur. Disk sparse olduğu için 120 GB iyi bir boyut. `steamos` kullanıcısına şifre koy.
 3. Önemsemediğin bir Steam hesabıyla giriş yap.
 4. **Settings → Advanced:** **SSH**'ı aç, **Graphics path: DXMT** seç, sonra launcher'ı yeniden başlat.

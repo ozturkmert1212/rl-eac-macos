@@ -9,6 +9,10 @@ None of the hard parts are mine. This repo only documents how I put the existing
 > [!WARNING]
 > **This is unofficial and unsupported.** Epic/Psyonix do not support Rocket League on macOS, in a VM or under emulation. A ban is unlikely as long as you do not cheat or hide the environment, but it is not impossible. **Use an alt account you can afford to lose.**
 
+[![Rocket League online on an Apple silicon Mac (video)](https://img.youtube.com/vi/zC_vq7zjUqI/maxresdefault.jpg)](https://youtu.be/zC_vq7zjUqI)
+
+*Click to watch it running online on YouTube.*
+
 ## Result
 
 Tested on 2026-10-21:
@@ -36,10 +40,22 @@ macOS ─ FX Steam Launcher (libkrun VM, ARM64 SteamOS)
 - Heroic on ARM64 only offers ARM64 Wine/Proton, and EAC's x86-64 client cannot load there (code `206`). So **Heroic is only used to log in and install**. The game is started from Steam as a non-Steam game.
 - Epic games need a fresh one-time login token (`-AUTH_PASSWORD=...`) on every start. `rl-wrap.sh` gets one from Heroic's bundled `legendary` and adds it to the command line. If the game is out of date, the wrapper updates it first.
 
+## Quick install
+
+1. Do step [1. Launcher and SteamOS](#1-launcher-and-steamos) below on the Mac, then connect over SSH as in [step 3](#3-patched-fex).
+2. Inside the VM, run:
+   ```sh
+   curl -fsSL https://raw.githubusercontent.com/ozturkmert1212/rl-eac-macos/main/install.sh | bash
+   ```
+3. The script does what it can and stops with a `TODO` when it needs you: confirming Steam's install dialogs, or logging in to Epic in Heroic. Do that, then run the same command again. It skips everything that is already done. Building FEX takes 15-30 minutes, and downloading the game takes a while too.
+4. At the end it prints the two Steam settings you set by hand (Launch Options and Proton Experimental).
+
+The manual steps below do the same thing, one by one.
+
 ## Setup
 
 ### 1. Launcher and SteamOS
-1. Install the DMG from [StonkGuy/steamac releases](https://github.com/StonkGuy/steamac/releases). **Not** the upstream FX release: upstream has no DXMT path. The DMG is ad-hoc signed, so the first time use right-click → Open.
+1. Install the DMG from [StonkGuy/steamac releases](https://github.com/StonkGuy/steamac/releases). This setup was tested with that fork. The upstream FX release has had an experimental DXMT option since 1.9.2, but I have not tested Rocket League on it. The fork's DMG is ad-hoc signed, so the first time use right-click → Open.
 2. Create a SteamOS disk. 120 GB is a good size, since the disk is sparse. Set a password for user `steamos`.
 3. Log in to Steam with an account that does not matter.
 4. **Settings → Advanced:** turn on **SSH**, set **Graphics path: DXMT**, then restart the launcher.
