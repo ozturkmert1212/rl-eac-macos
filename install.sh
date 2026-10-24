@@ -130,6 +130,27 @@ epic_account() {
   "$HOME/bin/legendary" status --offline --json 2>/dev/null |
     python3 -c 'import json,sys; a=json.load(sys.stdin).get("account") or ""; print("" if a.startswith("<") else a)' 2>/dev/null || true
 }
+# Turns legendary's five-line status blocks into one updating line.
+progress_bar() {
+  local line total='?' pct=0 done_mib=0 eta='--:--:--' dl=0 disk=0 n bar
+  while IFS= read -r line; do
+    case $line in
+      *"Download size: "*) total=${line##*Download size: }; total=${total%% (*} ;;
+      *"= Progress: "*)
+        pct=${line##*Progress: }; pct=${pct%%%*}
+        eta=${line##*ETA: } ;;
+      *" - Downloaded: "*) done_mib=${line##*Downloaded: }; done_mib=${done_mib%% MiB*} ;;
+      *" + Download"*) dl=${line##*- }; dl=${dl%% MiB/s*} ;;
+      *" + Disk"*)
+        disk=${line##*- }; disk=${disk%% MiB/s*}
+        n=$(( ${pct%.*} * 30 / 100 ))
+        bar=$(printf '%*s' "$n" '' | tr ' ' '#')$(printf '%*s' $((30 - n)) '' | tr ' ' '-')
+        printf '\r\033[K    [%s] %5s%%  %s / %s  down %s MiB/s  disk %s MiB/s  ETA %s' \
+          "$bar" "$pct" "$(awk -v m="$done_mib" 'BEGIN{printf "%.2f GiB", m/1024}')" "$total" "$dl" "$disk" "$eta" ;;
+      *ERROR*|*CRITICAL*) printf '\r\033[K    %s\n' "$line" ;;
+    esac
+  done
+}
 path=$(rl_path)
 if [ -z "$path" ]; then
   account=$(epic_account)
@@ -146,8 +167,10 @@ if [ -z "$path" ]; then
   fi
   # Same config and install folder as Heroic, so Heroic sees the game afterwards.
   echo "    logged in as $account, installing Rocket League (about 25 GB) to ~/Games/Heroic"
-  "$HOME/bin/legendary" install Sugar -y --base-path "$HOME/Games/Heroic" ||
-    die "legendary could not install Rocket League (run this script again to resume)"
+  echo "    full log: ~/rl-install.log"
+  "$HOME/bin/legendary" install Sugar -y --base-path "$HOME/Games/Heroic" 2>&1 | tee "$HOME/rl-install.log" | progress_bar ||
+    { printf '\n'; tail -15 "$HOME/rl-install.log" >&2; die "legendary could not install Rocket League (run this script again to resume)"; }
+  printf '\n'
   path=$(rl_path)
   [ -n "$path" ] || die "Rocket League still does not show as installed"
 fi
