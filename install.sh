@@ -38,26 +38,31 @@ for t in "${TOOLS[@]}"; do
     ok "$name"
   else
     missing=1
-    if [ -f "$APPS/appmanifest_$id.acf" ]; then
-      todo "$name is still downloading"
-    else
-      todo "$name is not installed, asking Steam to install it"
-      steam "steam://install/$id" >/dev/null 2>&1 &
-    fi
+    if [ -f "$APPS/appmanifest_$id.acf" ]; then todo "$name is still downloading"; else todo "$name is not installed"; fi
   fi
 done
 if [ $missing = 1 ]; then
-  echo "    confirm the install dialogs in Steam (VM window); waiting for the downloads, Ctrl+C is safe"
-  waited=0
+  # Steam shows one install dialog at a time, so ask for the next tool only once the previous download has started.
+  echo "    confirm each install dialog in Steam (VM window); waiting for the downloads, Ctrl+C is safe"
+  asked='' asked_at=0 now=0
   while :; do
-    left=()
-    for t in "${TOOLS[@]}"; do installed "${t%%:*}" || left+=("${t#*:}"); done
+    left=() next='' next_name=''
+    for t in "${TOOLS[@]}"; do
+      id=${t%%:*}
+      installed "$id" && continue
+      left+=("${t#*:}")
+      [ -z "$next" ] && [ ! -f "$APPS/appmanifest_$id.acf" ] && next=$id next_name=${t#*:}
+    done
     [ ${#left[@]} = 0 ] && break
-    printf '\r    waiting for: %s   ' "$(IFS=,; echo "${left[*]}")"
-    sleep 10; waited=$((waited + 10))
-    if [ $waited = 120 ] && ! ls "$APPS"/appmanifest_{1493710,1826330,3127680}.acf >/dev/null 2>&1; then
-      printf '\n'; todo "some downloads have not started; if no dialog showed up, install the missing tools from the Steam library by hand"
+    if [ -n "$next" ] && { [ "$next" != "$asked" ] || [ $((now - asked_at)) -ge 90 ]; }; then
+      if [ "$next" = "$asked" ]; then
+        printf '\n'; todo "no download started for $next_name; if no dialog showed up, install it from the Steam library by hand"
+      fi
+      steam "steam://install/$next" >/dev/null 2>&1 &
+      asked=$next asked_at=$now
     fi
+    printf '\r    waiting for: %s   ' "$(IFS=,; echo "${left[*]}")"
+    sleep 10; now=$((now + 10))
   done
   printf '\n'; ok "all Steam tools installed"
 fi
