@@ -183,12 +183,131 @@ if grep -qaF "$exe" "$STEAM"/userdata/*/config/shortcuts.vdf 2>/dev/null; then
   ok "Steam shortcut already exists"
 else
   steamos-add-to-steam "$exe" >/dev/null 2>&1 || die "could not add the Steam shortcut"
-  ok "Steam shortcut added (it shows up as Launcher.exe, rename it if you like)"
+  ok "Steam shortcut added"
 fi
 
-say "Two settings left for you, in Steam: Launcher.exe / Rocket League > Properties"
-echo "    Launch Options:  $HOME/bin/rl-wrap.sh %command%"
-echo "    Compatibility:   force Proton Experimental"
-echo
-echo "    Also check FX Steam Launcher > Settings > Advanced > Graphics path: DXMT."
-echo "    Then press Play. The first start is slow. EAC is fine when ~/steam-*.log says 'Launcher finished with: 301'."
+say "Steam shortcut settings"
+# Edits shortcuts.vdf (binary: launch options, name) and config.vdf (text: compat tool) for the shortcut
+# whose Exe is $1. "check" only reports; "apply" writes. Steam must not be running for "apply".
+shortcut_cfg() {
+  python3 - "$@" <<'PY'
+import glob, os, re, struct, sys
+mode, exe, opts = sys.argv[1], sys.argv[2], sys.argv[3]
+steam = os.path.expanduser("~/.local/share/Steam")
+
+def rd_bin(b, i):
+    d = {}
+    while True:
+        t = b[i]; i += 1
+        if t == 8: return d, i
+        j = b.index(0, i); k = b[i:j].decode("utf-8", "surrogateescape"); i = j + 1
+        if t == 0: d[k], i = rd_bin(b, i)
+        elif t == 1: j = b.index(0, i); d[k] = b[i:j].decode("utf-8", "surrogateescape"); i = j + 1
+        elif t == 2: d[k] = ("i32", struct.unpack_from("<i", b, i)[0]); i += 4
+        elif t == 7: d[k] = ("i64", struct.unpack_from("<q", b, i)[0]); i += 8
+        else: raise ValueError("unknown shortcuts.vdf type %d" % t)
+
+def wr_bin(d):
+    o = bytearray()
+    for k, v in d.items():
+        kb = k.encode("utf-8", "surrogateescape") + b"\0"
+        if isinstance(v, dict): o += b"\0" + kb + wr_bin(v)
+        elif isinstance(v, str): o += b"\1" + kb + v.encode("utf-8", "surrogateescape") + b"\0"
+        elif v[0] == "i32": o += b"\2" + kb + struct.pack("<i", v[1])
+        else: o += b"\7" + kb + struct.pack("<q", v[1])
+    return bytes(o + b"\x08")
+
+def sub(d, key):
+    # config.vdf key case varies ("Valve"/"valve"), so reuse whatever is there.
+    k = next((k for k in d if k.lower() == key.lower() and isinstance(d[k], dict)), key)
+    return d.setdefault(k, {})
+
+def rd_txt(s):
+    toks = re.findall(r'"((?:[^"\\]|\\.)*)"|([{}])', s)
+    def node(i):
+        d = {}
+        while i < len(toks):
+            q, br = toks[i]
+            if br == "}": return d, i + 1
+            k = q.replace('\\\\', '\\'); i += 1
+            q2, br2 = toks[i]
+            if br2 == "{": d[k], i = node(i + 1)
+            else: d[k] = q2.replace('\\\\', '\\'); i += 1
+        return d, i
+    return node(0)[0]
+
+def wr_txt(d, ind=0):
+    o, t = [], "\t" * ind
+    esc = lambda x: x.replace('\\', '\\\\')
+    for k, v in d.items():
+        if isinstance(v, dict): o += [f'{t}"{esc(k)}"', t + "{"] + wr_txt(v, ind + 1) + [t + "}"]
+        else: o.append(f'{t}"{esc(k)}"\t\t"{esc(v)}"')
+    return o
+
+todo = 0
+for sf in glob.glob(steam + "/userdata/*/config/shortcuts.vdf"):
+    b = open(sf, "rb").read()
+    if not b or b[0] != 0: continue
+    root, _ = rd_bin(b, b.index(0, 1) + 1)
+    name = b[1:b.index(0, 1)].decode()
+    for sc in root.values():
+        e = next((v for k, v in sc.items() if k.lower() == "exe"), "")
+        if not isinstance(e, str) or e.strip('"') != exe: continue
+        appid = sc.get("appid", ("i32", 0))[1] & 0xffffffff
+        cfgf = steam + "/config/config.vdf"
+        cfg = rd_txt(open(cfgf, encoding="utf-8").read())
+        m = cfg
+        for key in ("InstallConfigStore", "Software", "Valve", "Steam", "CompatToolMapping"):
+            m = sub(m, key)
+        ok = sc.get("LaunchOptions") == opts and m.get(str(appid), {}).get("name") == "proton_experimental"
+        if mode == "check": todo += not ok; continue
+        if ok: continue
+        sc["LaunchOptions"] = opts
+        an = next((k for k in sc if k.lower() == "appname"), "AppName")
+        if sc.get(an) in ("", "Launcher.exe", "Launcher"): sc[an] = "Rocket League"
+        m[str(appid)] = {"name": "proton_experimental", "config": "", "priority": "250"}
+        for f, data in ((sf, b"\0" + name.encode() + b"\0" + wr_bin(root) + b"\x08"),
+                        (cfgf, ("\n".join(wr_txt(cfg)) + "\n").encode())):
+            open(f + ".rl-bak", "wb").write(open(f, "rb").read())
+            open(f + ".tmp", "wb").write(data); os.replace(f + ".tmp", f)
+sys.exit(1 if todo else 0)
+PY
+}
+opts="$HOME/bin/rl-wrap.sh %command%"
+if shortcut_cfg check "$exe" "$opts"; then
+  ok "launch options and Proton Experimental already set"
+elif pgrep -u "$USER" -x steam >/dev/null && ! pgrep -u "$USER" -x plasmashell >/dev/null; then
+  # In Game Mode the session may start Steam again right away and overwrite the files.
+  todo "set these by hand in Steam > Launcher.exe > Properties (or switch to Desktop Mode and run this script again):"
+  echo "      Launch Options:  $opts"
+  echo "      Compatibility:   force Proton Experimental"
+else
+  restart=0
+  if pgrep -u "$USER" -x steam >/dev/null; then
+    echo "    closing Steam for a moment (it rewrites these files when it exits)"
+    steam -shutdown >/dev/null 2>&1 || true
+    for _ in $(seq 60); do pgrep -u "$USER" -x steam >/dev/null || break; sleep 1; done
+    pgrep -u "$USER" -x steam >/dev/null && die "Steam did not exit, close it and run this script again"
+    sleep 2; restart=1
+  fi
+  shortcut_cfg apply "$exe" "$opts" || die "could not write the Steam settings (backups: *.rl-bak next to them)"
+  shortcut_cfg check "$exe" "$opts" || die "the Steam settings did not stick"
+  ok "launch options set, Proton Experimental forced, shortcut renamed to Rocket League"
+  if [ $restart = 1 ]; then
+    # Start Steam inside the desktop session, with plasmashell's display and bus.
+    pid=$(pgrep -u "$USER" -x plasmashell | head -1)
+    (
+      while IFS= read -r -d '' kv; do
+        case $kv in DISPLAY=*|WAYLAND_DISPLAY=*|XDG_RUNTIME_DIR=*|DBUS_SESSION_BUS_ADDRESS=*|XAUTHORITY=*) export "${kv?}" ;; esac
+      done <"/proc/$pid/environ"
+      setsid steam </dev/null >/dev/null 2>&1 &
+    )
+    sleep 15
+    if pgrep -u "$USER" -x steam >/dev/null; then ok "Steam started again"; else todo "start Steam again from the desktop"; fi
+  fi
+fi
+
+say "Done"
+echo "    In Steam, play Rocket League (the shortcut). The first start is slow."
+echo "    Check FX Steam Launcher > Settings > Advanced > Graphics path: DXMT."
+echo "    EAC is fine when ~/steam-*.log says 'Launcher finished with: 301'."

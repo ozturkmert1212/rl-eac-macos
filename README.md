@@ -48,7 +48,7 @@ macOS ─ FX Steam Launcher (libkrun VM, ARM64 SteamOS)
    curl -fsSL https://raw.githubusercontent.com/ozturkmert1212/rl-eac-macos/main/install.sh | bash
    ```
 3. The script does what it can and stops with a `TODO` when it needs you: confirming Steam's install dialogs, or logging in to Epic in Heroic. Do that, then run the same command again. It skips everything that is already done. Building FEX takes 15-30 minutes, and downloading the game takes a while too.
-4. At the end it prints the two Steam settings you set by hand (Launch Options and Proton Experimental).
+4. In Desktop Mode it also sets the shortcut's Launch Options and Proton Experimental for you (Steam closes and opens again for a moment). In Game Mode it prints them for you to set by hand.
 
 The manual steps below do the same thing, one by one.
 

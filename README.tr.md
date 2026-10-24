@@ -48,7 +48,7 @@ macOS ─ FX Steam Launcher (libkrun VM, ARM64 SteamOS)
    curl -fsSL https://raw.githubusercontent.com/ozturkmert1212/rl-eac-macos/main/install.sh | bash
    ```
 3. Script yapabildiğini yapar, sana iş düştüğünde `TODO` yazıp durur: Steam'in kurulum pencerelerini onaylamak ya da Heroic'te Epic'e giriş yapmak gibi. Onu yap, sonra aynı komutu tekrar çalıştır. Zaten yapılmış adımları atlar. FEX'in derlenmesi 15-30 dakika sürer, oyunun inmesi de biraz zaman alır.
-4. Sonunda Steam'de elle yapacağın iki ayarı yazar (Launch Options ve Proton Experimental).
+4. Desktop Mode'dayken kısayolun Launch Options ve Proton Experimental ayarını da kendisi yapar (Steam kısa bir süre kapanıp açılır). Game Mode'daysa bu iki ayarı elle yapman için ekrana yazar.
 
 Aşağıdaki manuel adımlar aynı işi tek tek yapar.
 
