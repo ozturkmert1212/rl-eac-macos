@@ -135,7 +135,9 @@ progress_bar() {
   local line total='?' pct=0 done_mib=0 eta='--:--:--' dl=0 disk=0 n bar
   while IFS= read -r line; do
     case $line in
-      *"Download size: "*) total=${line##*Download size: }; total=${total%% (*} ;;
+      *"Download size: "*)
+        total=${line##*Download size: }; total=${total%% (*}
+        case $total in *MiB) total=$(awk -v m="${total% MiB}" 'BEGIN{printf "%.2f GiB", m/1024}') ;; esac ;;
       *"= Progress: "*)
         pct=${line##*Progress: }; pct=${pct%%%*}
         eta=${line##*ETA: } ;;
@@ -166,7 +168,7 @@ if [ -z "$path" ]; then
     ok "logged in"
   fi
   # Same config and install folder as Heroic, so Heroic sees the game afterwards.
-  echo "    logged in as $account, installing Rocket League (about 25 GB) to ~/Games/Heroic"
+  echo "    logged in as $account, installing Rocket League to ~/Games/Heroic"
   echo "    full log: ~/rl-install.log"
   "$HOME/bin/legendary" install Sugar -y --base-path "$HOME/Games/Heroic" 2>&1 | tee "$HOME/rl-install.log" | progress_bar ||
     { printf '\n'; tail -15 "$HOME/rl-install.log" >&2; die "legendary could not install Rocket League (run this script again to resume)"; }
