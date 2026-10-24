@@ -61,7 +61,7 @@ if [ $missing = 1 ]; then
       steam "steam://install/$next" >/dev/null 2>&1 &
       asked=$next asked_at=$now
     fi
-    printf '\r    waiting for: %s   ' "$(IFS=,; echo "${left[*]}")"
+    printf '\r\033[K    waiting for: %s' "$(IFS=,; echo "${left[*]}")"
     sleep 10; now=$((now + 10))
   done
   printf '\n'; ok "all Steam tools installed"
@@ -94,10 +94,11 @@ ln -sf "$HOME/Applications/Heroic.AppImage" "$HOME/Desktop/Heroic.AppImage"
 ok "Heroic: ~/Applications/Heroic.AppImage (also on the Desktop)"
 if [ ! -x "$HOME/bin/legendary" ]; then
   # The AppImage mounts at a new path every start, so keep a copy of its bundled legendary.
+  # Its path inside the AppImage differs between builds, so unpack the whole image and search it.
   tmp=$(mktemp -d)
-  (cd "$tmp" && "$HOME/Applications/Heroic.AppImage" --appimage-extract '*/linux/legendary' >/dev/null)
-  lg=$(find "$tmp" -type f -name legendary | head -1)
-  [ -n "$lg" ] || die "legendary not found inside Heroic.AppImage"
+  (cd "$tmp" && "$HOME/Applications/Heroic.AppImage" --appimage-extract >/dev/null) || { rm -rf "$tmp"; die "could not unpack Heroic.AppImage"; }
+  lg=$(find "$tmp/squashfs-root" -type f -name legendary -perm -u+x | head -1)
+  [ -n "$lg" ] || { rm -rf "$tmp"; die "legendary not found inside Heroic.AppImage"; }
   cp "$lg" "$HOME/bin/legendary" && chmod +x "$HOME/bin/legendary"
   rm -rf "$tmp"
 fi
