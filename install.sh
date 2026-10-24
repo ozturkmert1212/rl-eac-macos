@@ -74,12 +74,24 @@ else
   git clone -q --depth 1 -b fex-eac "$FORK" "$HOME/steamac-fork"
 fi
 cd "$HOME/steamac-fork/fex-eac"
-if sh install-fex-tool.sh status 2>/dev/null | grep -q "^installed: $FEX_TAG"; then
+# Same test as install-fex-tool.sh: the patched build is in place when Steam's FEX tool has the staged binaries.
+# (Its version string is fixed at configure time, so it does not say eac-2610.3.)
+fex_same() {
+  local b
+  for b in FEX FEXBash FEXGetConfig FEXOfflineCompiler FEXServer FEXServerManager FEXpidof; do
+    cmp -s "$HOME/fex-eac-work/stage/usr/bin/$b" "$APPS/common/FEX-Emu/usr/bin/$b" || return 1
+  done
+}
+if fex_same; then
   ok "already installed"
 else
-  echo "    building FEX in the VM, this takes about 15-30 minutes (log: ~/fex-build.log)"
+  if [ -x "$HOME/fex-eac-work/stage/usr/bin/FEX" ]; then
+    echo "    Steam's FEX tool has Valve's build again (Steam updated it?), putting the patched build back"
+  else
+    echo "    building FEX in the VM, this takes about 15-30 minutes (log: ~/fex-build.log)"
+  fi
   sh build-fex.sh >"$HOME/fex-build.log" 2>&1 || die "FEX build failed, see ~/fex-build.log"
-  sh install-fex-tool.sh || die "FEX install failed (if a game is running, quit it and run this script again)"
+  sh install-fex-tool.sh >/dev/null || die "FEX install failed (if a game is running, quit it and run this script again)"
   ok "installed (Valve's build is backed up; 'sh ~/steamac-fork/fex-eac/install-fex-tool.sh restore' undoes it)"
 fi
 cd "$HOME"
@@ -114,16 +126,23 @@ rl_path() {
   "$HOME/bin/legendary" list-installed --json 2>/dev/null |
     python3 -c 'import json,sys; print(next((g["install_path"] for g in json.load(sys.stdin) if g["app_name"]=="Sugar"), ""))' 2>/dev/null || true
 }
+epic_account() {
+  "$HOME/bin/legendary" status --offline --json 2>/dev/null |
+    python3 -c 'import json,sys; a=json.load(sys.stdin).get("account") or ""; print("" if a.startswith("<") else a)' 2>/dev/null || true
+}
 path=$(rl_path)
 if [ -z "$path" ]; then
-  account=$("$HOME/bin/legendary" status --json 2>/dev/null |
-    python3 -c 'import json,sys; a=json.load(sys.stdin).get("account") or ""; print("" if a.startswith("<") else a)' 2>/dev/null || true)
+  account=$(epic_account)
   if [ -z "$account" ]; then
-    todo "log in to Epic in Heroic first:"
+    todo "log in to Epic in Heroic:"
     echo "      1. Steam > Power > Switch to Desktop, open Heroic.AppImage on the Desktop"
     echo "      2. Log in to Epic with an ALT account (you do not need to install the game there)"
-    echo "      3. Close Heroic and run this script again"
-    exit 0
+    echo "    waiting for the login, Ctrl+C is safe"
+    while [ -z "$account" ]; do
+      sleep 5
+      account=$(epic_account)
+    done
+    ok "logged in"
   fi
   # Same config and install folder as Heroic, so Heroic sees the game afterwards.
   echo "    logged in as $account, installing Rocket League (about 25 GB) to ~/Games/Heroic"
