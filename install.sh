@@ -4,7 +4,7 @@
 # Safe to re-run: every step checks what is already there. Run it again after each step it asks you to do.
 set -euo pipefail
 
-SCRIPT_VERSION=2026-10-24.2
+SCRIPT_VERSION=2026-10-24.3
 REPO_RAW=https://raw.githubusercontent.com/ozturkmert1212/rl-eac-macos/main
 FORK=https://github.com/StonkGuy/steamac.git
 FEX_TAG=eac-2610.3
@@ -180,10 +180,23 @@ fi
 exe="$path/Binaries/Win64/Launcher.exe"
 [ -f "$exe" ] || die "Launcher.exe not found at $exe"
 ok "installed at $path"
+desktop() { pgrep -u "$USER" -x plasmashell >/dev/null; }
+steam_up() { pgrep -u "$USER" -x steam >/dev/null; }
+# Steam rewrites its files when it exits, and in Game Mode the session can start it again at once,
+# so the shortcut and its settings are only done in Desktop Mode.
+if ! desktop; then
+  todo "switch to Desktop Mode: Steam > Power > Switch to Desktop"
+  echo "    waiting for the desktop, Ctrl+C is safe"
+  until desktop && steam_up; do sleep 3; done
+  sleep 10
+  ok "Desktop Mode"
+fi
 if grep -qaF "$exe" "$STEAM"/userdata/*/config/shortcuts.vdf 2>/dev/null; then
   ok "Steam shortcut already exists"
 else
+  until steam_up; do sleep 3; done
   steamos-add-to-steam "$exe" >/dev/null 2>&1 || die "could not add the Steam shortcut"
+  sleep 5
   ok "Steam shortcut added"
 fi
 
@@ -246,7 +259,7 @@ def wr_txt(d, ind=0):
         else: o.append(f'{t}"{esc(k)}"\t\t"{esc(v)}"')
     return o
 
-todo = 0
+todo, found = 0, 0
 for sf in glob.glob(steam + "/userdata/*/config/shortcuts.vdf"):
     b = open(sf, "rb").read()
     if not b or b[0] != 0: continue
@@ -255,6 +268,7 @@ for sf in glob.glob(steam + "/userdata/*/config/shortcuts.vdf"):
     for sc in root.values():
         e = next((v for k, v in sc.items() if k.lower() == "exe"), "")
         if not isinstance(e, str) or e.strip('"') != exe: continue
+        found = 1
         appid = sc.get("appid", ("i32", 0))[1] & 0xffffffff
         cfgf = steam + "/config/config.vdf"
         cfg = rd_txt(open(cfgf, encoding="utf-8").read())
@@ -273,19 +287,13 @@ for sf in glob.glob(steam + "/userdata/*/config/shortcuts.vdf"):
                         (cfgf, ("\n".join(wr_txt(cfg)) + "\n").encode())):
             open(f + ".rl-bak", "wb").write(open(f, "rb").read())
             open(f + ".tmp", "wb").write(data); os.replace(f + ".tmp", f)
+if not found: print("    the Steam shortcut for " + exe + " is not in shortcuts.vdf yet", file=sys.stderr); sys.exit(2)
 sys.exit(1 if todo else 0)
 PY
 }
 opts="$HOME/bin/rl-wrap.sh %command%"
 if shortcut_cfg check "$exe" "$opts"; then
   ok "launch options and Proton Experimental already set"
-elif pgrep -u "$USER" -x steam >/dev/null && ! pgrep -u "$USER" -x plasmashell >/dev/null; then
-  # In Game Mode the session may start Steam again right away and overwrite the files.
-  todo "Steam is in Game Mode, so this script does not touch its files. Either switch to Desktop Mode"
-  echo "    (Steam > Power > Switch to Desktop) and run this script again, or set these by hand in"
-  echo "    Steam > Launcher.exe > Properties:"
-  echo "      Launch Options:  $opts"
-  echo "      Compatibility:   force Proton Experimental"
 else
   restart=0
   if pgrep -u "$USER" -x steam >/dev/null; then
@@ -315,4 +323,3 @@ fi
 say "Done"
 echo "    In Steam, play Rocket League (the shortcut). The first start is slow."
 echo "    Check FX Steam Launcher > Settings > Advanced > Graphics path: DXMT."
-echo "    If Rocket League does not show up in your Steam library, restart Steam (or the launcher)."
